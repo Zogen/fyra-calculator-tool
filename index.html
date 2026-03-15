@@ -2,7 +2,7 @@
 <html lang="el">
 <head>
 <meta charset="UTF-8">
-<title>6m Bar Cutting Optimizer</title>
+<title>Bar Cutting Optimizer</title>
 
 <style>
 body{
@@ -38,7 +38,12 @@ button{
 
 <body>
 
-<h2>6m Bar Cutting Optimizer</h2>
+<h2>Bar Cutting Optimizer</h2>
+
+<label>
+Μήκος Βέργας (m):
+<input type="number" id="stockLength" step="0.01" value="6">
+</label>
 
 <p>Δώσε μήκη και πλήθος κομματιών</p>
 
@@ -64,8 +69,6 @@ button{
 
 <script>
 
-const STOCK = 6;
-
 function addRow(){
 
     let table = document.getElementById("inputTable");
@@ -84,16 +87,14 @@ function removeRow(btn){
     btn.parentNode.parentNode.remove();
 }
 
-function optimizeCut(lengths, quantities){
+function optimizeCut(lengths, quantities, STOCK){
 
     let pieces = [];
 
     for(let i=0;i<lengths.length;i++){
-
         for(let j=0;j<quantities[i];j++){
             pieces.push(lengths[i]);
         }
-
     }
 
     pieces.sort((a,b)=>b-a);
@@ -113,19 +114,19 @@ function optimizeCut(lengths, quantities){
                 placed = true;
                 break;
             }
-
         }
 
         if(!placed){
             bars.push([piece]);
         }
-
     }
 
     return bars;
 }
 
 function calculate(){
+
+    let STOCK = parseFloat(document.getElementById("stockLength").value);
 
     let table = document.getElementById("inputTable");
 
@@ -144,7 +145,7 @@ function calculate(){
 
     }
 
-    let bars = optimizeCut(lengths, quantities);
+    let bars = optimizeCut(lengths, quantities, STOCK);
 
     let totalWaste = 0;
 
@@ -186,4 +187,3 @@ function calculate(){
 
 </body>
 </html>
-
