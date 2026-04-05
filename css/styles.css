@@ -156,9 +156,8 @@ header p {
 
 .stock-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--space-md);
-  flex-wrap: wrap;
 }
 
 /* ================================
@@ -169,7 +168,7 @@ header p {
   display: flex;
   align-items: center;
   flex: 1;
-  max-width: 340px;
+  max-width: 280px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -573,9 +572,16 @@ tbody tr:hover { background: var(--surface-2); }
 .color-6 { background: #84cc16; color: #fff; }
 .color-7 { background: #f97316; color: #fff; }
 
-/* ================================
-   RESULTS TABLE
-================================ */
+.export-row {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.btn-export {
+  font-size: 0.8rem;
+  padding: 7px 14px;
+  flex: none;
+}
 
 .result-table td:first-child {
   font-weight: 600;

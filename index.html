@@ -113,6 +113,14 @@
     <section class="results-section" id="resultsSection">
       <div class="card">
 
+        <div class="card-header">
+          <span class="card-title">Results</span>
+          <div class="export-row">
+            <button class="btn btn-secondary btn-export" onclick="exportCSV()">Export CSV</button>
+            <button class="btn btn-secondary btn-export" onclick="exportPDF()">Export PDF</button>
+          </div>
+        </div>
+
         <div class="summary-grid" id="summaryGrid"></div>
 
         <div class="section-label">Visual cutting plan</div>
@@ -126,8 +134,8 @@
               <tr>
                 <th>Bar</th>
                 <th>Pieces</th>
-                <th>Used</th>
-                <th>Waste</th>
+                <th>Used (cm)</th>
+                <th>Waste (cm)</th>
                 <th>Efficiency</th>
               </tr>
             </thead>
