@@ -1,103 +1,105 @@
 # Fyra Calculator Tool
 
-A lightweight web tool that calculates an efficient cutting plan when cutting stock bars into smaller pieces.
-
-The application helps estimate:
-
-- Number of bars required  
-- Waste per bar  
-- Total waste  
-- Theoretical minimum bars required  
-
-The tool runs entirely in the browser and is optimized for **mobile use**, making it convenient for on-site usage in workshops or manufacturing environments.
+A lightweight browser-based tool that calculates an efficient cutting plan when cutting stock bars into smaller pieces. Designed for on-site use in workshops and manufacturing environments.
 
 ---
 
 ## Features
 
-- User-defined stock bar length  
-- Input multiple cut lengths and quantities  
-- Automatic cutting plan calculation  
-- Waste calculation per bar  
-- Total waste estimation  
-- Theoretical minimum material calculation  
-- Structured results table  
-- Mobile-friendly responsive UI  
-- Automatic dark mode (based on device settings)  
-
----
-
-## Demo
-
-Once deployed, the tool can be accessed directly from a browser.
-
-Example usage flow:
-
-1. Enter the **stock bar length**
-2. Add the **required piece lengths**
-3. Enter the **quantity** for each length
-4. Press **Calculate**
-5. View the generated **cutting plan and waste summary**
+- User-defined stock bar length with selectable unit (m, cm, mm)
+- Sub-lengths always entered in cm for consistency
+- Optional kerf (blade width) offset per cut
+- Two input modes:
+  - **Manual** — add rows with label, length, and quantity
+  - **CSV** — paste directly from Excel (tab-separated columns)
+- Excel paste format: each column is one item type (`ΤΕΜΑΧΙΑ: N` header, lengths below); quantity is a per-row multiplier
+- Comma and dot decimal separators both accepted
+- Piece labels with color coding across the visual plan
+- Visual cutting diagram — proportional bar segments per cut, waste shown as dashed region
+- Efficiency rating per bar (Excellent / Good / Poor)
+- Summary stats: bars needed, total waste, overall efficiency, theoretical minimum bars
+- Export to **CSV** (UTF-8, Excel-compatible) and **PDF** (print-ready, opens in new tab)
+- Mobile-friendly responsive UI
+- Automatic dark mode (follows device settings)
+- Runs entirely in the browser — no server, no dependencies
 
 ---
 
 ## How It Works
 
-The tool uses a **First-Fit Decreasing heuristic algorithm**, a well-known approach for approximating solutions to the cutting stock optimization problem.
+The tool uses a **First-Fit Decreasing (FFD) heuristic**, a well-known approximation algorithm for the cutting stock problem.
 
-Algorithm steps:
+Steps:
 
-1. Expand the quantities into a list of individual pieces
+1. Expand all piece types into individual pieces (applying the per-row quantity multiplier)
 2. Sort pieces by descending length
-3. Iterate through pieces and place each in the first bar where it fits
-4. If no bar can accommodate the piece, create a new bar
+3. Place each piece into the first bar where it fits, accounting for kerf
+4. If no existing bar fits, open a new one
 
-This approach is fast and produces efficient cutting plans suitable for real-world use.
+This is fast, practical, and produces near-optimal results for real-world cut lists.
 
 ---
 
-## Example Output
+## Input Format (CSV / Excel Paste)
 
-| Bar | Pieces | Used Length | Waste |
-|-----|--------|-------------|-------|
-| 1 | 2.4, 2.4, 1.2 | 6.0 | 0.0 |
-| 2 | 2.4, 1.8, 1.8 | 6.0 | 0.0 |
-| 3 | 1.8, 1.8, 1.2, 1.2 | 6.0 | 0.0 |
+Select a range in Excel and paste directly into the CSV tab. The expected layout is:
 
-Summary:
+```
+ΤΕΜΑΧΙΑ: 2    ΤΕΜΑΧΙΑ: 3    ΤΕΜΑΧΙΑ: 1
+97.5          148.2          138.2
+97.5          148.2          138.2
+97.5          148.2
+97.5
+```
 
-- Total bars used  
-- Total waste  
-- Theoretical minimum bars required  
+- First row: `Label: N` per column — `N` is the quantity multiplier (how many pieces of each length are needed)
+- Subsequent rows: one length per cell (in cm), empty cells are skipped
+- Columns are separated by tabs (standard Excel copy behaviour)
+
+---
+
+## Export
+
+After calculating, two export options are available in the Results card:
+
+- **Export CSV** — includes input parameters, summary, and full cut details table. UTF-8 BOM encoded for correct display in Excel.
+- **Export PDF** — opens a print-ready page in a new tab with input parameters, summary stats, visual bar diagram, and cut details table. Trigger print from the browser.
+
+---
+
+## Project Structure
+
+```
+/
+├── index.html        # Markup and layout
+├── css/
+│   └── styles.css    # Design tokens, components, dark mode
+├── js/
+│   └── app.js        # All logic: parsing, optimization, rendering, export
+└── content/
+    └── favicon.ico
+```
 
 ---
 
 ## Deployment
 
-Because the project is a static website, it can be hosted easily on platforms such as:
+Static site — no build step required. Deploy by pointing the root directory to any static host:
 
-- GitHub Pages  
-- Netlify  
-- Cloudflare Pages  
-- Vercel  
-
-Deployment usually requires simply connecting the repository and setting the **output directory to the project root**.
+- Cloudflare Pages
+- GitHub Pages
+- Netlify
+- Vercel
 
 ---
 
-## Future Enhancements
+## Possible Future Enhancements
 
-Possible improvements for future versions:
-
-- Visual cutting diagrams for each bar  
-- Export results to CSV / Excel  
-- Printable cutting sheets  
-- Save frequently used cutting lists  
-- Support for multiple stock lengths  
-- Exact optimization solver (integer programming)  
-- Shareable cutting plan URLs  
-- Progressive Web App (PWA) support  
-- Offline mode for workshop environments  
+- Exact optimization solver (integer programming) for guaranteed minimum bar count
+- Save and reload cut lists (localStorage or shareable URL)
+- Support for multiple stock bar lengths in a single calculation
+- PWA / offline mode for workshop environments
+- Printable per-bar cut sheets with measurements
 
 ---
 
