@@ -17,6 +17,22 @@ function switchTab(name) {
 }
 
 /* ================================
+   UNIT HANDLING
+================================ */
+
+// Sub-lengths are always in cm. This converts stock bar & kerf to cm.
+function toСm(value, unit) {
+  if (unit === 'm')  return value * 100;
+  if (unit === 'mm') return value / 10;
+  return value; // already cm
+}
+
+function updateUnitLabels() {
+  const unit = document.getElementById('stockUnit').value;
+  document.getElementById('kerfUnit').textContent = unit;
+}
+
+/* ================================
    MANUAL INPUT ROWS
 ================================ */
 
@@ -56,57 +72,89 @@ function parseManualInput() {
   rows.forEach(row => {
     const inputs = row.querySelectorAll('input');
     const label = inputs[0].value.trim();
-    const length = parseFloat(inputs[1].value);
+    const length = parseFloat(inputs[1].value.replace(',', '.'));
     const qty = parseInt(inputs[2].value);
     if (!isNaN(length) && length > 0 && !isNaN(qty) && qty > 0) {
-      pieces.push({ label: label || null, length, qty });
+      for (let i = 0; i < qty; i++) {
+        pieces.push({ label: label || null, length, qty: 1 });
+      }
     }
   });
   return pieces;
 }
 
 function parseCSVInput() {
-  const raw = document.getElementById('csvInput').value.trim();
+  const raw = document.getElementById('csvInput').value;
   const errEl = document.getElementById('csvError');
   errEl.style.display = 'none';
 
-  if (!raw) {
+  if (!raw.trim()) {
     errEl.textContent = 'Please enter some data.';
     errEl.style.display = 'block';
     return null;
   }
 
+  // Split into rows, then split each row by tab (Excel paste format)
+  const rows = raw.split('\n').map(r => r.split('\t'));
+  const numCols = Math.max(...rows.map(r => r.length));
+
+  // First row is headers: "Label xN" per column
+  const headers = rows[0];
+  const columns = [];
+
+  for (let c = 0; c < numCols; c++) {
+    const header = (headers[c] || '').trim();
+    if (!header) continue; // skip empty columns
+
+    const headerMatch = header.match(/^(.+?)\s*:\s*(\d+)$/i);
+    if (!headerMatch) {
+      errEl.textContent = `Column ${c + 1}: header "${header}" must be "Label: <quantity>" (e.g. "ΤΕΜΑΧΙΑ: 5").`;
+      errEl.style.display = 'block';
+      return null;
+    }
+
+    columns.push({
+      label: headerMatch[1].trim(),
+      qty: parseInt(headerMatch[2]),
+      colIndex: c,
+      lengths: []
+    });
+  }
+
+  if (!columns.length) {
+    errEl.textContent = 'No valid column headers found.';
+    errEl.style.display = 'block';
+    return null;
+  }
+
+  // Remaining rows are lengths — collect non-empty cells per column
+  for (let r = 1; r < rows.length; r++) {
+    for (const col of columns) {
+      const cell = (rows[r][col.colIndex] || '').trim();
+      if (!cell) continue;
+      // Accept both dot and comma as decimal separator
+      const length = parseFloat(cell.replace(',', '.'));
+      if (isNaN(length) || length <= 0) {
+        errEl.textContent = `Row ${r + 1}, column "${col.label}": invalid length "${cell}".`;
+        errEl.style.display = 'block';
+        return null;
+      }
+      col.lengths.push(length);
+    }
+  }
+
+  // qty is a multiplier per row — each unique length gets qty pieces
   const pieces = [];
-  const lines = raw.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
-
-  for (let i = 0; i < lines.length; i++) {
-    const parts = lines[i].split(',').map(p => p.trim());
-    let label = null, length, qty;
-
-    if (parts.length === 2) {
-      length = parseFloat(parts[0]);
-      qty = parseInt(parts[1]);
-    } else if (parts.length >= 3) {
-      label = parts[0];
-      length = parseFloat(parts[1]);
-      qty = parseInt(parts[2]);
-    } else {
-      errEl.textContent = `Line ${i + 1}: expected "length, quantity" or "label, length, quantity".`;
-      errEl.style.display = 'block';
-      return null;
+  for (const col of columns) {
+    for (const length of col.lengths) {
+      for (let i = 0; i < col.qty; i++) {
+        pieces.push({ label: col.label, length, qty: 1 });
+      }
     }
-
-    if (isNaN(length) || length <= 0 || isNaN(qty) || qty <= 0) {
-      errEl.textContent = `Line ${i + 1}: invalid length or quantity.`;
-      errEl.style.display = 'block';
-      return null;
-    }
-
-    pieces.push({ label, length, qty });
   }
 
   if (!pieces.length) {
-    errEl.textContent = 'No valid rows found.';
+    errEl.textContent = 'No valid pieces found.';
     errEl.style.display = 'block';
     return null;
   }
@@ -119,12 +167,7 @@ function parseCSVInput() {
 ================================ */
 
 function optimizeCut(pieces, STOCK, kerf) {
-  const allPieces = [];
-  pieces.forEach((p, typeIdx) => {
-    for (let j = 0; j < p.qty; j++) {
-      allPieces.push({ length: p.length, typeIdx, label: p.label });
-    }
-  });
+  const allPieces = pieces.map((p, typeIdx) => ({ ...p, typeIdx }));
   allPieces.sort((a, b) => b.length - a.length);
 
   const bars = [];
@@ -164,9 +207,19 @@ function calculateCSV() {
 ================================ */
 
 function runCalculation(pieces) {
-  const STOCK = parseFloat(document.getElementById('stockLength').value);
-  const kerf = parseFloat(document.getElementById('kerfWidth').value) || 0;
+  const unit = document.getElementById('stockUnit').value;
+  const STOCK = toСm(parseFloat(document.getElementById('stockLength').value), unit);
+  const kerf = toСm(parseFloat(document.getElementById('kerfWidth').value) || 0, unit);
   if (isNaN(STOCK) || STOCK <= 0) return;
+
+  // Assign a typeIdx per unique label for coloring
+  const labelIndex = {};
+  let colorCounter = 0;
+  pieces.forEach(p => {
+    const key = p.label || '__unlabelled__';
+    if (labelIndex[key] === undefined) labelIndex[key] = colorCounter++;
+    p.typeIdx = labelIndex[key];
+  });
 
   const bars = optimizeCut(pieces, STOCK, kerf);
 
@@ -175,21 +228,26 @@ function runCalculation(pieces) {
     const used = bar.reduce((ss, p) => ss + p.length + kerf, 0);
     return s + Math.max(0, STOCK - used);
   }, 0);
-  const totalRequired = pieces.reduce((s, p) => s + p.length * p.qty, 0);
+  const totalRequired = pieces.reduce((s, p) => s + p.length, 0);
   const minBars = Math.ceil(totalRequired / STOCK);
   const efficiency = (totalUsed / (bars.length * STOCK) * 100);
   const effClass = efficiency >= 90 ? 'efficiency-good' : efficiency >= 75 ? 'efficiency-ok' : 'efficiency-poor';
 
+  // Build legend entries: one per unique label
+  const legendEntries = Object.entries(labelIndex).map(([key, idx]) => {
+    const label = key === '__unlabelled__' ? null : key;
+    const count = pieces.filter(p => p.label === label).length;
+    return { label, idx, count };
+  });
+
   renderSummary(bars.length, minBars, totalWaste, efficiency, effClass);
-  renderLegend(pieces);
+  renderLegend(legendEntries);
   renderBarsVisual(bars, STOCK, kerf);
   renderResultsTable(bars, STOCK, kerf);
 
   const section = document.getElementById('resultsSection');
   section.style.display = 'block';
   section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-  pieces.forEach((p, i) => p.typeIdx = i);
 }
 
 function renderSummary(barsCount, minBars, totalWaste, efficiency, effClass) {
@@ -202,7 +260,7 @@ function renderSummary(barsCount, minBars, totalWaste, efficiency, effClass) {
     <div class="stat-card">
       <div class="stat-label">Total waste</div>
       <div class="stat-value">${totalWaste.toFixed(3)}</div>
-      <div class="stat-sub">m across all bars</div>
+      <div class="stat-sub">cm across all bars</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Efficiency</div>
@@ -211,12 +269,12 @@ function renderSummary(barsCount, minBars, totalWaste, efficiency, effClass) {
     </div>`;
 }
 
-function renderLegend(pieces) {
+function renderLegend(legendEntries) {
   document.getElementById('legend').innerHTML =
-    pieces.map((p, i) => `
+    legendEntries.map(e => `
       <div class="legend-item">
-        <div class="legend-dot" style="background:${COLORS[i % COLORS.length]}"></div>
-        <span>${p.label ? p.label + ' ' : ''}${p.length}m ×${p.qty}</span>
+        <div class="legend-dot" style="background:${COLORS[e.idx % COLORS.length]}"></div>
+        <span>${e.label || 'Piece'} ×${e.count} (cm)</span>
       </div>`
     ).join('') +
     `<div class="legend-item">
@@ -234,7 +292,7 @@ function renderBarsVisual(bars, STOCK, kerf) {
       const w = (p.length / STOCK * 100).toFixed(2);
       const color = COLORS[p.typeIdx % COLORS.length];
       const showLabel = p.length / STOCK > 0.08;
-      return `<div class="bar-segment" style="width:${w}%;background:${color}" title="${p.label ? p.label + ' ' : ''}${p.length}m">${showLabel ? p.length + 'm' : ''}</div>`;
+      return `<div class="bar-segment" style="width:${w}%;background:${color}" title="${p.label ? p.label + ' ' : ''}${p.length}cm">${showLabel ? p.length + 'cm' : ''}</div>`;
     }).join('');
 
     const wasteW = (waste / STOCK * 100).toFixed(2);
@@ -260,15 +318,15 @@ function renderResultsTable(bars, STOCK, kerf) {
     const effClass = eff >= 90 ? 'efficiency-good' : eff >= 75 ? 'efficiency-ok' : 'efficiency-poor';
 
     const piecesHtml = bar.map(p =>
-      `<span class="piece-chip" style="background:${COLORS[p.typeIdx % COLORS.length]}">${p.label ? p.label + ' ' : ''}${p.length}m</span>`
+      `<span class="piece-chip" style="background:${COLORS[p.typeIdx % COLORS.length]}">${p.label ? p.label + ' ' : ''}${p.length}cm</span>`
     ).join('');
 
     return `
       <tr>
         <td>B${idx + 1}</td>
         <td class="pieces-cell">${piecesHtml}</td>
-        <td>${totalUsedWithKerf.toFixed(3)} m</td>
-        <td>${waste.toFixed(3)} m</td>
+        <td>${totalUsedWithKerf.toFixed(2)} cm</td>
+        <td>${waste.toFixed(2)} cm</td>
         <td><span class="efficiency-pill ${effClass}">${eff.toFixed(1)}%</span></td>
       </tr>`;
   }).join('');

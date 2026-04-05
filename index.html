@@ -26,18 +26,25 @@
       <div class="stock-row">
         <div>
           <div style="font-size:0.82rem;font-weight:600;color:var(--text-muted);margin-bottom:6px;">Bar length</div>
-          <div class="input-group">
-            <input type="number" id="stockLength" value="6" step="0.01" min="0.01" placeholder="6"/>
-            <span class="unit">m</span>
+          <div class="input-group" style="min-width: 120px;">
+            <input type="number" id="stockLength" value="6" step="0.01" min="0.01" placeholder="6" />
+            <select id="stockUnit" class="unit-select" onchange="updateUnitLabels()">
+              <option value="m" selected>m</option>
+              <option value="cm">cm</option>
+              <option value="mm">mm</option>
+            </select>
           </div>
         </div>
         <div>
           <div style="font-size:0.82rem;font-weight:600;color:var(--text-muted);margin-bottom:6px;">Kerf (blade width)</div>
           <div class="input-group">
             <input type="number" id="kerfWidth" value="0" step="0.001" min="0" placeholder="0"/>
-            <span class="unit">m</span>
+            <span class="unit" id="kerfUnit">cm</span>
           </div>
         </div>
+      </div>
+      <div style="margin-top:10px;font-size:0.78rem;color:var(--text-subtle)" id="unitNote">
+        Sub-lengths are always in cm. Stock bar and kerf are in the selected unit.
       </div>
     </section>
 
@@ -84,13 +91,15 @@
       <!-- CSV tab -->
       <div id="tab-csv" class="tab-panel active">
         <div class="csv-area">
-          <textarea id="csvInput" placeholder="length, quantity
-2.40, 4
-1.80, 6
-0.90, 10"></textarea>
+          <textarea id="csvInput" placeholder="ΤΕΜΑΧΙΑ: 5      ΤΕΜΑΧΙΑ: 3      ΤΕΜΑΧΙΑ: 4
+2.40            1.80            0.90
+2.40            1.50            1.20
+1.80            1.80            0.90
+2.10                            1.20
+2.40"></textarea>
         </div>
         <div class="csv-hint">
-          One piece type per line: <code>length, quantity</code> or <code>label, length, quantity</code>
+          Paste directly from Excel. First row: <code>ΤΕΜΑΧΙΑ: N</code> per column. Rows below: one length per cell. Columns are tab-separated.
         </div>
         <div class="csv-error" id="csvError"></div>
         <div class="action-row">

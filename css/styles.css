@@ -156,8 +156,9 @@ header p {
 
 .stock-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-md);
+  flex-wrap: wrap;
 }
 
 /* ================================
@@ -168,7 +169,7 @@ header p {
   display: flex;
   align-items: center;
   flex: 1;
-  max-width: 280px;
+  max-width: 340px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -199,6 +200,19 @@ header p {
   color: var(--text-muted);
   padding: 0 12px 0 4px;
   white-space: nowrap;
+}
+
+.unit-select {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0 10px 0 4px;
+  cursor: pointer;
+  appearance: auto;
 }
 
 /* Hide number input spinners */
